@@ -12,7 +12,9 @@ def ask_json(prompt: str, images=None) -> dict:
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is missing. Set it in Render Environment.")
+        raise RuntimeError(
+            "GEMINI_API_KEY is missing. Set it in Render Environment."
+        )
 
     client = genai.Client(api_key=api_key)
 
@@ -28,11 +30,10 @@ def ask_json(prompt: str, images=None) -> dict:
             )
 
     response = client.models.generate_content(
-        model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
         contents=contents,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
-            temperature=0.3,
         ),
     )
 
