@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './style.css';
+import AuthPanel from './AuthPanel';
+import { supabase } from './supabaseClient';
 
 const API = 'https://foodverse-new-backend.onrender.com';
 
@@ -73,7 +75,30 @@ function Result({ value }) {
   );
 }
 
-export default function App() {
+export default function App() { 
+  
+  const [showAuth, setShowAuth] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setUser(data.session?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -275,22 +300,51 @@ export default function App() {
 
   return (
     <div className="foodverse">
-      <header className="navbar">
-        <a href="#home" className="logo">
-          🍽️ Food<span>Verse</span>
-        </a>
 
-        <nav>
-          <a href="#home">Home</a>
-          <a href="#categories">Categories</a>
-          <a href="#restaurants">Restaurants</a>
-          <a href="#ai-tools">AI Tools</a>
-        </nav>
+<header className="navbar">
+  <a href="#home" className="logo">
+    🍽️ Food<span>Verse</span>
+  </a>
 
+  <nav>
+    <a href="#home">Home</a>
+    <a href="#categories">Categories</a>
+    <a href="#restaurants">Restaurants</a>
+    <a href="#ai-tools">AI Tools</a>
+  </nav>
+
+  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+    {user ? (
+      <>
+        <span style={{ fontSize: 13, color: '#44403c' }}>
+          {user.email}
+        </span>
+        <button
+          className="login-btn"
+          onClick={async () => {
+            const { error } = await supabase.auth.signOut();
+            if (error) alert(error.message);
+          }}
+        >
+          Logout
+        </button>
+      </>
+    ) : (
+      <>
+        <button
+          className="login-btn"
+          onClick={() => setShowAuth(true)}
+        >
+          Login / Sign Up
+        </button>
         <a className="login-btn" href="#ai-tools">
           Try AI Tools
         </a>
-      </header>
+      </>
+    )}
+  </div>
+</header>
+
 
       <main>
         <section className="hero" id="home">
@@ -664,6 +718,9 @@ export default function App() {
         <p>Discover food. Explore flavours. Enjoy life.</p>
         <p>© 2026 FoodVerse. All rights reserved.</p>
       </footer>
+       {showAuth && (
+        <AuthPanel onClose={() => setShowAuth(false)} />
+      )}
     </div>
   );
 }
