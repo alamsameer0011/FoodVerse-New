@@ -11,7 +11,7 @@ app = FastAPI(title="FoodVerse")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://foodverse-frontend-project.onrender.com",
+        "https://foodverse-frontend.onrender.com",
     ],
     allow_credentials=False,
     allow_methods=["*"],
