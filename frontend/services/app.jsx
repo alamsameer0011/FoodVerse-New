@@ -4,7 +4,7 @@ import './style.css';
 import AuthPanel from './AuthPanel';
 import { supabase } from './supabaseClient';
 
-const API = 'https://foodverse-new-backend.onrender.com';
+const API = 'https://foodverse-backend-project.onrender.com';
 
 const categories = [
   { name: 'Pizza', emoji: '🍕' },
