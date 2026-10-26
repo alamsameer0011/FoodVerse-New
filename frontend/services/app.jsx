@@ -1,3 +1,195 @@
+import React, { useEffect, useState } from 'react';
+import './style.css';
+import AuthPanel from './AuthPanel';
+import { supabase } from './supabaseClient';
+
+const API = 'https://foodverse-backend-project.onrender.com';
+
+const categories = [
+  { name: 'Pizza', emoji: '🍕', image: 'https://images.unsplash.com/photo-1579751626657-72bc17010498?auto=format&fit=crop&w=500&q=85' },
+  { name: 'Burger', emoji: '🍔', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=500&q=85' },
+  { name: 'Biryani', emoji: '🍛', image: 'https://images.unsplash.com/photo-1563379091339-03246963d96c?auto=format&fit=crop&w=500&q=85' },
+  { name: 'Desserts', emoji: '🍰', image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=500&q=85' },
+  { name: 'Chinese', emoji: '🥡', image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=500&q=85' },
+  { name: 'Drinks', emoji: '🥤', image: 'https://images.unsplash.com/photo-1513558161293-cdaf765edfd4?auto=format&fit=crop&w=500&q=85' },
+];
+
+const restaurants = [
+  { id: 1, name: 'Royal Biryani House', cuisine: 'Indian · Biryani', rating: '4.8', time: '25–30 min', price: '₹250 for two', category: 'Biryani', image: 'https://images.unsplash.com/photo-1563379091339-03246963d96c?auto=format&fit=crop&w=900&q=90', tag: 'Guest favourite' },
+  { id: 2, name: 'Pizza Paradise', cuisine: 'Italian · Wood-fired pizza', rating: '4.6', time: '30–35 min', price: '₹400 for two', category: 'Pizza', image: 'https://images.unsplash.com/photo-1579751626657-72bc17010498?auto=format&fit=crop&w=900&q=90', tag: 'Made to share' },
+  { id: 3, name: 'Burger Junction', cuisine: 'American · Burgers', rating: '4.5', time: '20–25 min', price: '₹200 for two', category: 'Burger', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=90', tag: 'Comfort classic' },
+  { id: 4, name: 'Sweet Treats', cuisine: 'Bakery · Desserts', rating: '4.7', time: '15–20 min', price: '₹180 for two', category: 'Desserts', image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=900&q=90', tag: 'A little indulgence' },
+];
+
+const mealDefaults = {
+  age: 25, weight_kg: 65, height_cm: 165, goal: 'maintain',
+  diet: 'none', allergies: '', dislikes: '', days: 3,
+};
+
+function Result({ value }) {
+  if (!value) return null;
+  return <pre className="result-output">{JSON.stringify(value, null, 2)}</pre>;
+}
+
+function SectionIntro({ eyebrow, title, text, light = false }) {
+  return (
+    <div className={`section-intro ${light ? 'section-intro-light' : ''}`}>
+      <div>
+        <span className="eyebrow">{eyebrow}</span>
+        <h2>{title}</h2>
+        {text && <p>{text}</p>}
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [showAuth, setShowAuth] = useState(false);
+  const [user, setUser] = useState(null);
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [images, setImages] = useState({});
+  const [results, setResults] = useState({});
+  const [loading, setLoading] = useState('');
+  const [errors, setErrors] = useState({});
+  const [recipeQuery, setRecipeQuery] = useState('');
+  const [servings, setServings] = useState(2);
+  const [recipeDiet, setRecipeDiet] = useState('');
+  const [mealProfile, setMealProfile] = useState(mealDefaults);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setUser(data.session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const filteredRestaurants = restaurants.filter((restaurant) => {
+    const q = search.toLowerCase().trim();
+    return (restaurant.name.toLowerCase().includes(q) ||
+      restaurant.cuisine.toLowerCase().includes(q) ||
+      restaurant.category.toLowerCase().includes(q)) &&
+      (selectedCategory === 'All' || restaurant.category === selectedCategory);
+  });
+
+  async function requestApi(key, endpoint, options) {
+    setLoading(key);
+    setErrors((prev) => ({ ...prev, [key]: '' }));
+    setResults((prev) => ({ ...prev, [key]: null }));
+    try {
+      const response = await fetch(`${API}${endpoint}`, options);
+      const bodyText = await response.text();
+      let data;
+      try { data = bodyText ? JSON.parse(bodyText) : {}; }
+      catch { data = { message: bodyText || 'Unexpected server response.' }; }
+
+      if (!response.ok) {
+        const detail = typeof data.detail === 'string'
+          ? data.detail
+          : JSON.stringify(data.detail || data);
+        throw new Error(detail || `Request failed (${response.status})`);
+      }
+      setResults((prev) => ({ ...prev, [key]: data }));
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        [key]: error.message === 'Failed to fetch'
+          ? 'Backend se connection nahi ho paaya. Backend status aur CORS settings check karein.'
+          : error.message,
+      }));
+    } finally {
+      setLoading('');
+    }
+  }
+
+  function analyzeImage(key, endpoint) {
+    const file = images[key];
+    if (!file) {
+      setErrors((prev) => ({ ...prev, [key]: 'Pehle ek image select karo.' }));
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      setErrors((prev) => ({ ...prev, [key]: 'Please select a valid image.' }));
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setErrors((prev) => ({ ...prev, [key]: 'Image 10 MB se chhoti honi chahiye.' }));
+      return;
+    }
+    const form = new FormData();
+    form.append('file', file);
+    requestApi(key, endpoint, { method: 'POST', body: form });
+  }
+
+  function generateRecipe(event) {
+    event.preventDefault();
+    if (!recipeQuery.trim()) {
+      setErrors((prev) => ({ ...prev, recipe: 'Dish ya ingredients ka naam likho.' }));
+      return;
+    }
+    requestApi('recipe', '/api/cook/recipe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: recipeQuery.trim(), servings: Number(servings), diet: recipeDiet }),
+    });
+  }
+
+  function generateMealPlan(event) {
+    event.preventDefault();
+    requestApi('mealplan', '/api/cook/mealplan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...mealProfile,
+        age: Number(mealProfile.age),
+        weight_kg: Number(mealProfile.weight_kg),
+        height_cm: Number(mealProfile.height_cm),
+        days: Number(mealProfile.days),
+      }),
+    });
+  }
+
+  function updateMeal(field, value) {
+    setMealProfile((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function ImageTool({ toolKey, number, title, description, endpoint, icon, image }) {
+    return (
+      <article className="tool-card">
+        <div className="tool-card-top">
+          <span className="tool-number">{number}</span>
+          <span className="tool-icon">{icon}</span>
+        </div>
+        <div className="tool-photo">
+          <img src={image} alt="" loading="lazy" />
+          <span className="photo-label">FOODVERSE AI</span>
+        </div>
+        <div className="tool-card-content">
+          <h3>{title}</h3>
+          <p>{description}</p>
+          <label className="upload-field">
+            <span>Choose an image</span>
+            <input type="file" accept="image/*" onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) {
+                setImages((prev) => ({ ...prev, [toolKey]: file }));
+                setResults((prev) => ({ ...prev, [toolKey]: null }));
+                setErrors((prev) => ({ ...prev, [toolKey]: '' }));
+              }
+            }} />
+          </label>
+          {images[toolKey] && <p className="file-name">Selected: {images[toolKey].name}</p>}
+          <button className="button button-dark button-full" disabled={Boolean(loading)} onClick={() => analyzeImage(toolKey, endpoint)}>
+            {loading === toolKey ? 'Analyzing…' : 'Analyze image →'}
+          </button>
+          {errors[toolKey] && <p className="error-message" role="alert">{errors[toolKey]}</p>}
           <Result value={results[toolKey]} />
         </div>
       </article>
@@ -126,3 +318,4 @@
       {showAuth && <AuthPanel onClose={() => setShowAuth(false)} />}
     </div>
   );
+}
