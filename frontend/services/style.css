@@ -983,3 +983,420 @@ input:focus-visible {
     transition: none !important;
   }
 }
+
+/* ===== FOODVERSE DREAMY HOMEPAGE 🌸 ===== */
+
+:root {
+  --fv-pink: #c65e7b;
+  --fv-pink-light: #f8e3e9;
+  --fv-cream: #fffaf5;
+  --fv-ink: #492d38;
+  --fv-muted: #8d747d;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 85px;
+}
+
+body {
+  background: var(--fv-cream) !important;
+  color: var(--fv-ink) !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+}
+
+::selection {
+  background: #f2c8d5;
+  color: #492d38;
+}
+
+/* Dreamy floating navbar */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 16px 6% !important;
+  background: rgba(255, 250, 247, 0.91) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(226, 182, 197, 0.35);
+  box-shadow: 0 5px 24px rgba(112, 64, 79, 0.055) !important;
+}
+
+.logo {
+  color: var(--fv-ink) !important;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 27px !important;
+  letter-spacing: -0.8px;
+}
+
+.logo span,
+.hero h1 span {
+  color: var(--fv-pink) !important;
+}
+
+.navbar nav a {
+  position: relative;
+  color: #745965 !important;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.navbar nav a:hover {
+  color: var(--fv-pink) !important;
+}
+
+.navbar nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -7px;
+  width: 0;
+  height: 2px;
+  border-radius: 4px;
+  background: var(--fv-pink);
+  transition: width 0.25s ease;
+}
+
+.navbar nav a:hover::after {
+  width: 100%;
+}
+
+/* Buttons: soft rose gradient */
+.login-btn,
+.explore-btn,
+.cta-section a {
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, #c65e7b, #df8da5) !important;
+  color: white !important;
+  box-shadow: 0 7px 19px rgba(198, 94, 123, 0.2);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.login-btn:hover,
+.explore-btn:hover,
+.cta-section a:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 11px 25px rgba(198, 94, 123, 0.28);
+}
+
+/* Storybook-style hero */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 88px 8% !important;
+  background:
+    radial-gradient(ellipse at 12% 20%, #f9e0e8 0%, transparent 37%),
+    radial-gradient(ellipse at 90% 85%, #f8e8d9 0%, transparent 35%),
+    linear-gradient(135deg, #fffaf7, #fff1f5 55%, #fffaf2) !important;
+}
+
+.hero::before,
+.hero::after {
+  position: absolute;
+  pointer-events: none;
+  color: rgba(198, 94, 123, 0.16);
+  font-family: Georgia, serif;
+}
+
+.hero::before {
+  content: "✧";
+  top: 28px;
+  left: 5%;
+  font-size: 58px;
+}
+
+.hero::after {
+  content: "♡";
+  right: 43%;
+  bottom: 20px;
+  font-size: 55px;
+  transform: rotate(-14deg);
+}
+
+.tagline,
+.small-heading {
+  color: var(--fv-pink) !important;
+  letter-spacing: 1.7px !important;
+  font-size: 12px !important;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  color: var(--fv-ink);
+  font-family: 'Playfair Display', Georgia, serif !important;
+  font-size: clamp(42px, 5.5vw, 70px) !important;
+  font-weight: 700;
+  letter-spacing: -1.8px;
+  line-height: 1.12 !important;
+}
+
+.hero-content > p {
+  color: var(--fv-muted) !important;
+  font-size: 16px;
+  line-height: 1.95 !important;
+}
+
+/* Soft pill-shaped search */
+.search-box {
+  border: 1px solid #f0d6df !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  box-shadow: 0 9px 30px rgba(126, 66, 85, 0.065);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.search-box:focus-within {
+  border-color: #d98ca2 !important;
+  box-shadow: 0 0 0 4px rgba(217, 140, 162, 0.13);
+}
+
+.search-box input {
+  color: var(--fv-ink);
+}
+
+.search-box input::placeholder {
+  color: #b59ca4;
+}
+
+/* Dreamy floating food illustration */
+.hero-image {
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background:
+    radial-gradient(circle at 35% 30%, #fffdfb 0%, #f9dfe7 48%, #f5d6c6 100%) !important;
+  box-shadow:
+    inset 0 0 35px rgba(255, 255, 255, 0.75),
+    0 25px 65px rgba(148, 84, 105, 0.13);
+  animation: fv-float 5s ease-in-out infinite;
+}
+
+.food-circle {
+  filter: drop-shadow(0 14px 12px rgba(92, 50, 57, 0.13));
+  animation: fv-food-sway 6s ease-in-out infinite;
+}
+
+.floating-food {
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.88) !important;
+  box-shadow: 0 12px 30px rgba(112, 64, 79, 0.12) !important;
+}
+
+.food-one {
+  animation: fv-float 4.2s ease-in-out infinite;
+}
+
+.food-two {
+  animation: fv-float 5s ease-in-out infinite reverse;
+}
+
+.food-three {
+  animation: fv-float 4.7s ease-in-out infinite;
+}
+
+@keyframes fv-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+
+@keyframes fv-food-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+/* Section headings */
+.section-heading h2 {
+  color: var(--fv-ink) !important;
+  font-family: 'Playfair Display', Georgia, serif !important;
+  font-size: clamp(27px, 3vw, 36px) !important;
+  letter-spacing: -0.6px;
+}
+
+.view-all {
+  color: var(--fv-pink) !important;
+  border-radius: 999px;
+  padding: 10px 14px;
+}
+
+.view-all:hover {
+  background: #fbeaf0;
+}
+
+/* Pretty category tiles */
+.category-card {
+  border: 1px solid #f0dfe4 !important;
+  border-radius: 22px !important;
+  background: rgba(255, 255, 255, 0.84) !important;
+  color: var(--fv-ink) !important;
+  box-shadow: 0 7px 22px rgba(112, 64, 79, 0.045);
+  transition: transform 0.25s ease, box-shadow 0.25s ease,
+    border-color 0.25s ease !important;
+}
+
+.category-card span {
+  filter: drop-shadow(0 4px 5px rgba(112, 64, 79, 0.08));
+  transition: transform 0.25s ease;
+}
+
+.category-card:hover span {
+  transform: scale(1.12) rotate(-5deg);
+}
+
+.category-card.active,
+.category-card:hover {
+  border-color: #e3a8ba !important;
+  background: linear-gradient(145deg, #fff, #fcebf0) !important;
+  box-shadow: 0 12px 28px rgba(198, 94, 123, 0.12);
+  transform: translateY(-4px);
+}
+
+/* Restaurant cards like a food magazine */
+.restaurants {
+  background:
+    radial-gradient(ellipse at 90% 10%, #f9e5eb, transparent 40%),
+    #fff6f5 !important;
+}
+
+.restaurant-card {
+  border: 1px solid #f0dfe4 !important;
+  border-radius: 23px !important;
+  background: #fffdfb !important;
+  box-shadow: 0 8px 25px rgba(112, 64, 79, 0.055) !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.restaurant-card:hover {
+  transform: translateY(-7px);
+  box-shadow: 0 18px 36px rgba(112, 64, 79, 0.12) !important;
+}
+
+.restaurant-image {
+  background: linear-gradient(135deg, #fbe6ec, #fff0df) !important;
+}
+
+.restaurant-image > span:first-child {
+  filter: drop-shadow(0 10px 8px rgba(112, 64, 79, 0.12));
+  transition: transform 0.3s ease;
+}
+
+.restaurant-card:hover .restaurant-image > span:first-child {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+.rating {
+  border: 1px solid #f3e0d0;
+  border-radius: 999px !important;
+  color: #805c46;
+  box-shadow: 0 4px 12px rgba(112, 64, 79, 0.06);
+}
+
+.restaurant-info h3 {
+  color: var(--fv-ink);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 20px !important;
+}
+
+.restaurant-info p,
+.restaurant-meta {
+  color: var(--fv-muted) !important;
+}
+
+.order-btn {
+  border: 1px solid #f0d6df !important;
+  border-radius: 999px !important;
+  background: #fff0f4 !important;
+  color: var(--fv-pink) !important;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.order-btn:hover {
+  background: var(--fv-pink) !important;
+  color: white !important;
+}
+
+/* Romantic call-to-action section */
+.cta-section {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 30px !important;
+  background:
+    radial-gradient(circle at 0% 100%, rgba(255,255,255,0.16), transparent 35%),
+    linear-gradient(130deg, #81495d, #c65e7b 65%, #d98ca2) !important;
+  box-shadow: 0 20px 45px rgba(126, 66, 85, 0.17);
+}
+
+.cta-section h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  letter-spacing: -0.5px;
+}
+
+.cta-section p {
+  color: #fff0f4 !important;
+}
+
+/* Creamy footer */
+.footer {
+  border-top: 1px solid #f0dfe4;
+  background: #fffaf7 !important;
+  color: var(--fv-muted) !important;
+}
+
+.footer h2 {
+  color: var(--fv-ink) !important;
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Mobile polish */
+@media (max-width: 650px) {
+  .navbar {
+    gap: 13px;
+  }
+
+  .logo {
+    font-size: 23px !important;
+  }
+
+  .navbar nav a {
+    font-size: 12px !important;
+  }
+
+  .hero {
+    padding: 55px 6% !important;
+  }
+
+  .hero h1 {
+    font-size: clamp(38px, 10vw, 52px) !important;
+    letter-spacing: -1px;
+  }
+
+  .hero-image {
+    border-radius: 48% !important;
+    min-height: 255px !important;
+  }
+
+  .category-card {
+    padding: 19px 8px !important;
+  }
+
+  .restaurant-card:hover,
+  .category-card.active,
+  .category-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .cta-section {
+    border-radius: 23px !important;
+  }
+}
+
+/* Accessibility: reduce animation when requested */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
