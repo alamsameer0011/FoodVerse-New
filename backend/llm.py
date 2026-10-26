@@ -8,10 +8,7 @@ import urllib.request
 
 
 def ask_json(prompt: str, images=None) -> dict:
-    """
-    Send a prompt to OpenRouter and return a JSON object.
-    Compatible with cooking.py calls using ask_json(prompt).
-    """
+    """Call OpenRouter for JSON text or image analysis."""
 
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
@@ -19,16 +16,27 @@ def ask_json(prompt: str, images=None) -> dict:
             "OPENROUTER_API_KEY is missing. Add it in Render Environment."
         )
 
-    model = os.getenv(
-        "OPENROUTER_MODEL",
-        "recursive/flint-v1.0:free"
-    )
-
     if images:
-        raise RuntimeError(
-            "The currently configured free model may not support images. "
-            "Text-based recipe generation can still work."
+        # Separate vision model; free router selects a compatible model.
+        model = os.getenv("OPENROUTER_VISION_MODEL", "openrouter/free")
+
+        content = [{"type": "text", "text": prompt}]
+
+        for image_bytes, mime_type in images:
+            encoded = base64.b64encode(image_bytes).decode("utf-8")
+            content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{mime_type};base64,{encoded}"
+                }
+            })
+    else:
+        # Keep the existing text model for recipes and meal plans.
+        model = os.getenv(
+            "OPENROUTER_MODEL",
+            "recursive/flint-v1.0:free"
         )
+        content = prompt
 
     payload = {
         "model": model,
@@ -42,7 +50,7 @@ def ask_json(prompt: str, images=None) -> dict:
             },
             {
                 "role": "user",
-                "content": prompt
+                "content": content
             }
         ],
         "temperature": 0.3
@@ -61,31 +69,30 @@ def ask_json(prompt: str, images=None) -> dict:
     )
 
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.urlopen(request, timeout=90) as response:
             result = json.loads(response.read().decode("utf-8"))
 
     except urllib.error.HTTPError as exc:
         error_body = exc.read().decode("utf-8", errors="replace")
-        message = error_body[:700]
 
         if exc.code == 401:
             raise RuntimeError(
-                "OpenRouter API key invalid. Check OPENROUTER_API_KEY in Render."
+                "OpenRouter API key invalid. Check Render Environment."
             ) from exc
 
         if exc.code == 402:
             raise RuntimeError(
-                "OpenRouter rejected the request due to account/key limits. "
-                "Check the free model and key limits; do not add payment unless you choose to."
+                "OpenRouter account or model limit reached. "
+                "Check free-model availability."
             ) from exc
 
         if exc.code == 429:
             raise RuntimeError(
-                "OpenRouter rate limit or free-model quota reached. Try again later."
+                "OpenRouter free-model rate limit reached. Try again later."
             ) from exc
 
         raise RuntimeError(
-            f"OpenRouter API error ({exc.code}): {message}"
+            f"OpenRouter API error ({exc.code}): {error_body[:700]}"
         ) from exc
 
     except urllib.error.URLError as exc:
@@ -117,12 +124,12 @@ def ask_json(prompt: str, images=None) -> dict:
     except json.JSONDecodeError:
         match = re.search(r"\{.*\}", content, re.DOTALL)
         if not match:
-            raise ValueError(
+            raise RuntimeError(
                 "The AI did not return valid JSON. Please try again."
             )
         data = json.loads(match.group(0))
 
     if not isinstance(data, dict):
-        raise ValueError("The AI response must be a JSON object.")
+        raise RuntimeError("The AI response must be a JSON object.")
 
     return data
