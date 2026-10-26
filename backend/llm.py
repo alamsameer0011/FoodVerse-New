@@ -1,85 +1,128 @@
 
+import base64
 import json
 import os
 import re
-
-from google import genai
-from google.genai import types
+import urllib.error
+import urllib.request
 
 
 def ask_json(prompt: str, images=None) -> dict:
-    """Get a JSON response from Gemini with a bounded request timeout."""
+    """
+    Send a prompt to OpenRouter and return a JSON object.
+    Compatible with cooking.py calls using ask_json(prompt).
+    """
 
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         raise RuntimeError(
-            "GEMINI_API_KEY is missing. Set it in Render Environment."
+            "OPENROUTER_API_KEY is missing. Add it in Render Environment."
         )
 
-    model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
-
-    # Timeout is in milliseconds.
-    client = genai.Client(
-        api_key=api_key,
-        http_options=types.HttpOptions(timeout=20000),
+    model = os.getenv(
+        "OPENROUTER_MODEL",
+        "recursive/flint-v1.0:free"
     )
 
-    contents = [prompt]
-
     if images:
-        for image_data, mime_type in images:
-            contents.append(
-                types.Part.from_bytes(
-                    data=image_data,
-                    mime_type=mime_type or "image/jpeg",
+        raise RuntimeError(
+            "The currently configured free model may not support images. "
+            "Text-based recipe generation can still work."
+        )
+
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "Return only a valid JSON object. "
+                    "Do not use Markdown fences or extra text."
                 )
-            )
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "temperature": 0.3
+    }
+
+    request = urllib.request.Request(
+        "https://openrouter.ai/api/v1/chat/completions",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://foodverse-frontend.onrender.com",
+            "X-Title": "FoodVerse"
+        },
+        method="POST"
+    )
 
     try:
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.3,
-            ),
-        )
-    except Exception as exc:
-        message = str(exc)
-        lowered = message.lower()
+        with urllib.request.urlopen(request, timeout=60) as response:
+            result = json.loads(response.read().decode("utf-8"))
 
-        if "429" in lowered or "resource_exhausted" in lowered:
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        message = error_body[:700]
+
+        if exc.code == 401:
             raise RuntimeError(
-                "Gemini free quota exceeded or rate limit reached. "
-                "Please try again when quota is available."
+                "OpenRouter API key invalid. Check OPENROUTER_API_KEY in Render."
             ) from exc
 
-        if any(word in lowered for word in (
-            "timeout", "timed out", "deadline exceeded"
-        )):
+        if exc.code == 402:
             raise RuntimeError(
-                "Gemini request timed out. Please try again."
+                "OpenRouter rejected the request due to account/key limits. "
+                "Check the free model and key limits; do not add payment unless you choose to."
+            ) from exc
+
+        if exc.code == 429:
+            raise RuntimeError(
+                "OpenRouter rate limit or free-model quota reached. Try again later."
             ) from exc
 
         raise RuntimeError(
-            f"Gemini API request failed: {message[:500]}"
+            f"OpenRouter API error ({exc.code}): {message}"
         ) from exc
 
-    response_text = response.text
-    if not response_text:
-        raise ValueError("Gemini returned an empty response.")
-
-    text = response_text.strip()
+    except urllib.error.URLError as exc:
+        raise RuntimeError(
+            f"Could not connect to OpenRouter: {exc.reason}"
+        ) from exc
 
     try:
-        result = json.loads(text)
+        content = result["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise RuntimeError(
+            f"Unexpected OpenRouter response: {str(result)[:500]}"
+        ) from exc
+
+    if isinstance(content, list):
+        content = "\n".join(
+            item.get("text", "")
+            for item in content
+            if isinstance(item, dict)
+        )
+
+    if not isinstance(content, str) or not content.strip():
+        raise RuntimeError("OpenRouter returned an empty response.")
+
+    content = content.strip()
+
+    try:
+        data = json.loads(content)
     except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", text, re.DOTALL)
+        match = re.search(r"\{.*\}", content, re.DOTALL)
         if not match:
-            raise ValueError("Gemini did not return valid JSON.")
-        result = json.loads(match.group(0))
+            raise ValueError(
+                "The AI did not return valid JSON. Please try again."
+            )
+        data = json.loads(match.group(0))
 
-    if not isinstance(result, dict):
-        raise ValueError("Expected a JSON object from Gemini.")
+    if not isinstance(data, dict):
+        raise ValueError("The AI response must be a JSON object.")
 
-    return result
+    return data
