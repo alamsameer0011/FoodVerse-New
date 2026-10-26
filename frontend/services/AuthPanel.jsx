@@ -1,209 +1,86 @@
-
 import React, { useState } from 'react';
 import { supabase } from './supabaseClient';
 
 export default function AuthPanel({ onClose }) {
-  const [isSignup, setIsSignup] = useState(true);
+  const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [messageType, setMessageType] = useState('info');
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function handleSubmit(event) {
+    event.preventDefault();
     setMessage('');
-    setLoading(true);
+    setBusy(true);
 
     try {
-      if (isSignup) {
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-        });
-
+      if (mode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
-
-        if (data.session) {
-          setMessage('Account created successfully! You are signed in.');
-        } else {
-          setMessage(
-            'Signup successful! Please check your email to confirm your account.'
-          );
-        }
+        setMessageType('success');
+        setMessage('Welcome back. You are signed in.');
+        window.setTimeout(() => onClose?.(), 650);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-
+        const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
         if (error) throw error;
-
-        setMessage('Login successful!');
+        setMessageType('success');
+        setMessage(data.session
+          ? 'Your account is ready. Welcome to FoodVerse!'
+          : 'Account created. Check your email for a confirmation link before signing in.');
+        if (data.session) window.setTimeout(() => onClose?.(), 900);
       }
     } catch (error) {
-      setMessage(error.message || 'Something went wrong. Please try again.');
+      setMessageType('error');
+      setMessage(error?.message || 'Something went wrong. Please try again.');
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.panel}>
-        <button
-          type="button"
-          onClick={onClose}
-          style={styles.close}
-          aria-label="Close"
-        >
-          ×
-        </button>
+    <div className="auth-backdrop" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose?.();
+    }}>
+      <section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+        <button className="auth-close" type="button" onClick={onClose} aria-label="Close sign in panel">×</button>
+        <div className="auth-visual">
+          <span className="auth-monogram">F.</span>
+          <span className="eyebrow">A TABLE FOR EVERY TASTE</span>
+          <h2>Come on in.<br /><em>Stay awhile.</em></h2>
+          <p>Your next favourite food story starts here.</p>
+          <div className="auth-visual-footer">FOODVERSE · GOOD FOOD, BEAUTIFULLY FOUND</div>
+        </div>
+        <div className="auth-form-side">
+          <span className="eyebrow">{mode === 'login' ? 'WELCOME BACK' : 'MAKE YOURSELF AT HOME'}</span>
+          <h3 id="auth-title">{mode === 'login' ? 'Sign in to FoodVerse' : 'Create your account'}</h3>
+          <p className="auth-subtitle">{mode === 'login'
+            ? 'Your food discoveries are right where you left them.'
+            : 'Save your place at the table and explore more.'}</p>
 
-        <h2 style={styles.heading}>
-          {isSignup ? 'Create your FoodVerse account' : 'Welcome back!'}
-        </h2>
+          {message && <div className={`auth-message ${messageType}`} role="status">{message}</div>}
 
-        <p style={styles.subtitle}>
-          {isSignup
-            ? 'Sign up to get started with FoodVerse.'
-            : 'Log in to your FoodVerse account.'}
-        </p>
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <label>Email address
+              <input type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required />
+            </label>
+            <label>Password
+              <input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder="At least 6 characters" minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} required />
+            </label>
+            <button className="button button-dark button-full auth-submit" disabled={busy}>
+              {busy ? 'One moment…' : mode === 'login' ? 'Sign in →' : 'Create account →'}
+            </button>
+          </form>
 
-        <form onSubmit={handleSubmit}>
-          <label style={styles.label} htmlFor="auth-email">Email</label>
-          <input
-            id="auth-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            autoComplete="email"
-            required
-            style={styles.input}
-          />
-
-          <label style={styles.label} htmlFor="auth-password">Password</label>
-          <input
-            id="auth-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 6 characters"
-            autoComplete={isSignup ? 'new-password' : 'current-password'}
-            minLength={6}
-            required
-            style={styles.input}
-          />
-
-          <button type="submit" disabled={loading} style={styles.submit}>
-            {loading ? 'Please wait...' : isSignup ? 'Sign Up' : 'Log In'}
-          </button>
-        </form>
-
-        {message && (
-          <p role="status" style={styles.message}>{message}</p>
-        )}
-
-        <p style={styles.switchText}>
-          {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignup(!isSignup);
-              setMessage('');
-            }}
-            style={styles.switchButton}
-          >
-            {isSignup ? 'Log In' : 'Sign Up'}
-          </button>
-        </p>
-      </div>
+          <div className="auth-switch">
+            <span>{mode === 'login' ? 'New to FoodVerse?' : 'Already have an account?'}</span>
+            <button type="button" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setMessage(''); }}>
+              {mode === 'login' ? 'Create an account' : 'Sign in instead'}
+            </button>
+          </div>
+          <p className="auth-privacy">By continuing, you agree to use FoodVerse respectfully and responsibly.</p>
+        </div>
+      </section>
     </div>
   );
 }
-
-const styles = {
-  overlay: {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 9999,
-    background: 'rgba(0, 0, 0, 0.55)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  panel: {
-    position: 'relative',
-    width: '100%',
-    maxWidth: 420,
-    boxSizing: 'border-box',
-    background: '#ffffff',
-    borderRadius: 16,
-    padding: 28,
-    color: '#24352b',
-    boxShadow: '0 15px 50px rgba(0,0,0,0.2)',
-  },
-  close: {
-    position: 'absolute',
-    top: 10,
-    right: 14,
-    border: 0,
-    background: 'transparent',
-    fontSize: 28,
-    cursor: 'pointer',
-    color: '#526157',
-  },
-  heading: {
-    margin: '8px 0',
-    fontSize: 24,
-    color: '#246b45',
-  },
-  subtitle: {
-    color: '#68756c',
-    marginBottom: 22,
-  },
-  label: {
-    display: 'block',
-    fontWeight: 600,
-    margin: '12px 0 6px',
-  },
-  input: {
-    width: '100%',
-    boxSizing: 'border-box',
-    padding: 12,
-    border: '1px solid #ccd7ce',
-    borderRadius: 8,
-    fontSize: 16,
-  },
-  submit: {
-    width: '100%',
-    marginTop: 20,
-    padding: 13,
-    background: '#287747',
-    color: '#ffffff',
-    border: 0,
-    borderRadius: 8,
-    fontSize: 16,
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  message: {
-    padding: 10,
-    background: '#f0f7f1',
-    borderRadius: 8,
-    overflowWrap: 'anywhere',
-  },
-  switchText: {
-    marginTop: 20,
-    textAlign: 'center',
-    fontSize: 14,
-  },
-  switchButton: {
-    background: 'none',
-    border: 0,
-    color: '#287747',
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-};
